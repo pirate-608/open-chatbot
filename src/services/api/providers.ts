@@ -21,9 +21,13 @@ export interface ProviderCapabilities {
 export interface Provider {
   id: string
   label: string
+  /** 通信协议：anthropic 走现有 Messages 客户端；openai 走 chat/completions 适配器。 */
+  protocol: 'anthropic' | 'openai'
   apiOrigin: string
   model: string
   systemPrompt: string
+  /** OpenAI 协议下是否用 enable_thinking 参数控制思考（千问等）。 */
+  supportsEnableThinking?: boolean
   capabilities: ProviderCapabilities
 }
 
@@ -31,6 +35,7 @@ export interface Provider {
 const DEEPSEEK: Provider = {
   id: 'deepseek',
   label: 'DeepSeek',
+  protocol: 'anthropic',
   apiOrigin: __API_ORIGIN__,
   model: 'deepseek-flash',
   systemPrompt: '该助手为DeepSeek，由深度求索公司创造。',
@@ -45,13 +50,15 @@ const DEEPSEEK: Provider = {
   },
 }
 
-/** 阿里云百炼按量付费：复用 Anthropic 兼容端点（/apps/anthropic），富功能保守降级。 */
+/** 阿里云百炼按量付费（dashscope）：Anthropic 端点拒绝浏览器跨域，故走 OpenAI 兼容端点。 */
 const BAILIAN: Provider = {
   id: 'bailian',
-  label: '阿里云百炼（按量）',
-  apiOrigin: 'https://dashscope.aliyuncs.com/apps',
+  label: 'dashscope',
+  protocol: 'openai',
+  apiOrigin: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
   model: 'qwen-flash',
   systemPrompt: '该助手为通义千问，由阿里巴巴集团创造。',
+  supportsEnableThinking: true,
   capabilities: {
     search: false,
     readUrl: false,
