@@ -44,5 +44,10 @@
     "oxfmt": "0.48.0",
     "oxlint": "1.63.0",
     "typescript": "7.0.2"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "gittersync@1.5.2": "patches/gittersync@1.5.2.patch"
+    }
   }
 }

@@ -1,0 +1,13 @@
+diff --git a/dist/github-api.js b/dist/github-api.js
+index 0fde96336cbff03947cf47f1cf4d47b53b59ce21..f792eee3377f41fc485592dbe34a66316075ae0b 100644
+--- a/dist/github-api.js
++++ b/dist/github-api.js
+@@ -173,7 +173,7 @@ export class GitHubApiAdapter {
+             if (!('content' in data)) {
+                 throw new ValidationError(path, 'Expected file content but got directory listing');
+             }
+-            const decoded = JSON.parse(atob(data.content));
++            const decoded = JSON.parse(decodeBase64Utf8(data.content));
+             this.shaCache.set(path, data.sha);
+             return { content: decoded, sha: data.sha, source: 'api' };
+         }

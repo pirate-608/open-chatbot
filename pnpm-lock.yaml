@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  gittersync@1.5.2:
+    hash: biqtmwzuvu4ju5a7ongldtngme
+    path: patches/gittersync@1.5.2.patch
+
 importers:
 
   .:
@@ -31,7 +36,7 @@ importers:
         version: 0.8.3
       gittersync:
         specifier: 1.5.2
-        version: 1.5.2
+        version: 1.5.2(patch_hash=biqtmwzuvu4ju5a7ongldtngme)
       idb:
         specifier: 8.0.3
         version: 8.0.3
@@ -2262,7 +2267,7 @@ snapshots:
 
   fflate@0.8.3: {}
 
-  gittersync@1.5.2:
+  gittersync@1.5.2(patch_hash=biqtmwzuvu4ju5a7ongldtngme):
     dependencies:
       '@octokit/rest': 22.0.1
       dexie: 4.4.7
