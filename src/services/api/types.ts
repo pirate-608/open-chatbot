@@ -4,7 +4,8 @@
  * 声明 deepseek_web_search / deepseek_read_url 或设置 safety_check.level 为 high 时进入扩展模式。
  */
 
-export type ChatModel = 'deepseek-flash' | 'deepseek-v4-pro'
+/** 模型名由供应商配置决定，多供应商下为任意字符串。 */
+export type ChatModel = string
 
 // ---------- 响应：内容块 ----------
 
@@ -178,7 +179,7 @@ export type CreateMessageRequest = {
   messages: MessageParam[]
   thinking: { type: 'enabled' | 'disabled' }
   tools: (DeepseekWebSearchTool | DeepseekReadUrlTool)[]
-  safety_check: { level: 'high' }
+  safety_check?: { level: 'high' }
   title?: { enabled: boolean }
 }
 

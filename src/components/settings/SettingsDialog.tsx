@@ -7,6 +7,7 @@ import {
   IconFollowsystemOutline16,
   IconLightOutline16,
   IconLoadingOutline16,
+  IconRefreshOutline16,
   IconSettingsOutline16,
   IconUploadOutline14,
 } from '../base/icons.js'
@@ -18,6 +19,7 @@ import {
 } from '../../services/chat/backup.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { useChatStore } from '../../services/chat/store.js'
+import { PROVIDERS, setProvider, useProvider } from '../../services/api/providers.js'
 import { regionCodes, getRegionName, provinces } from '../../services/location.js'
 import {
   isChineseBrowser,
@@ -34,6 +36,7 @@ import { Modal } from '../base/Modal.js'
 import { Select } from '../base/Select.js'
 import { showToast } from '../base/toastState.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
+import { SyncSettings } from './SyncSettings.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
 import styles from './Settings.module.css'
 
@@ -54,6 +57,11 @@ const sections: { value: SettingsSection; label: TranslationKey; icon: ReactNode
     icon: <IconSettingsOutline16 />,
   },
   { value: 'data', label: 'settingDialogAsideDataOptionLabel', icon: <IconDataOutline16 /> },
+  {
+    value: 'sync',
+    label: 'settingDialogAsideSyncOptionLabel',
+    icon: <IconRefreshOutline16 />,
+  },
 ]
 
 const SettingsContent = ({
@@ -104,9 +112,12 @@ const SettingsContent = ({
             <>
               <ThemeSetting />
               <LocaleSetting />
+              <ProviderSetting />
               <TtsVoiceSetting />
               <LocationSetting />
             </>
+          ) : section === 'sync' ? (
+            <SyncSettings />
           ) : (
             <>
               <ApiKeyField editor={apiKeyEditor} />
@@ -291,6 +302,26 @@ const LocaleSetting = () => {
             { value: 'en-US', label: t('settingsLocaleEnUS'), lang: 'en' },
           ]}
           onChange={setLocale}
+        />
+      }
+    />
+  )
+}
+
+/** 模型供应商：运行时切换 API 端点与能力降级，无需重载。 */
+const ProviderSetting = () => {
+  const t = useTranslate()
+  const id = useProvider((state) => state.id)
+  return (
+    <SettingCell
+      label={t('settingsProvider')}
+      status={null}
+      action={
+        <Select
+          ariaLabel={t('settingsProvider')}
+          value={id}
+          options={PROVIDERS.map((provider) => ({ value: provider.id, label: provider.label }))}
+          onChange={setProvider}
         />
       }
     />

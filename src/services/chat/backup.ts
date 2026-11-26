@@ -1,5 +1,5 @@
 import { formatDate } from '../../utils/format.js'
-import * as db from './db.js'
+import * as db from '../storage/index.js'
 import type { ImportProgressCallback } from './history/importArchive.js'
 import { replaceHistory, useChatStore } from './store.js'
 import type { Session } from './types.js'

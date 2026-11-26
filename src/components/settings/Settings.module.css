@@ -500,3 +500,63 @@
     max-width: 100%;
   }
 }
+
+.syncPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.syncToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 22px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.syncFields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.syncField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.syncFieldLabel {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.syncActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.syncSaveHint {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-caption);
+}
+
+.syncStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background-color: var(--dsw-specific-login-input);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+  font-variant-numeric: tabular-nums;
+}
