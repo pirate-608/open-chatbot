@@ -4,6 +4,7 @@
   "description": "基于 DeepSeek API 的静态聊天示例。",
   "license": "MIT",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "type": "module",
   "scripts": {
     "dev": "rspack serve -c rspack.config.ts",
