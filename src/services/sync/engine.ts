@@ -54,6 +54,11 @@ export class SyncEngine {
     return this.service.compact()
   }
 
+  /** 清空本地同步缓存（保留设备 id 与远端数据），下次 pull 全量重拉。 */
+  reset() {
+    return this.service.reset()
+  }
+
   startAutoSync(intervalMs?: number) {
     this.service.startAutoSync(intervalMs)
   }

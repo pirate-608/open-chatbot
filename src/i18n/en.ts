@@ -200,4 +200,5 @@ export const en = {
   syncStatusRate: '{count} GitHub calls left',
   syncBadge: 'Sync',
   settingsProvider: 'Model provider',
+  syncReset: 'Clear local cache & re-pull',
 } satisfies Record<keyof typeof zh, string>

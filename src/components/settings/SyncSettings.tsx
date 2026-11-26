@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
-import { syncNow } from '../../services/sync/bootstrap.js'
+import { resetSync, syncNow } from '../../services/sync/bootstrap.js'
 import { setSyncConfig, useSyncConfig, useSyncStatus } from '../../services/sync/settings.js'
 import { Button } from '../base/Button.js'
 import styles from './Settings.module.css'
@@ -103,6 +103,11 @@ export const SyncSettings = () => {
         {config.enabled ? (
           <Button variant="outlined" size="m" onClick={() => void syncNow()}>
             {t('syncNow')}
+          </Button>
+        ) : null}
+        {config.enabled ? (
+          <Button variant="dangerOutlined" size="m" onClick={() => void resetSync()}>
+            {t('syncReset')}
           </Button>
         ) : null}
       </div>

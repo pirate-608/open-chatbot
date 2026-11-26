@@ -54,3 +54,12 @@ export const initStorage = async (): Promise<void> => {
 
 /** 手动触发一次同步（供设置界面「立即同步」按钮）。 */
 export const syncNow = () => engine?.sync()
+
+/** 清空本地同步缓存并重载：重载后全量重拉远端，用于修复本地缓存损坏/乱码。 */
+export const resetSync = async (): Promise<void> => {
+  if (!engine) {
+    return
+  }
+  await engine.reset()
+  location.reload()
+}

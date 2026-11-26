@@ -189,4 +189,5 @@ export const zh = {
   syncStatusRate: 'GitHub 配额剩余 {count}',
   syncBadge: '同步',
   settingsProvider: '模型供应商',
+  syncReset: '清空本地缓存并重新拉取',
 } as const
