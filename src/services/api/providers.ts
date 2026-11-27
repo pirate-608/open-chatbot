@@ -32,6 +32,8 @@ export interface ProviderWire {
   title: 'extension' | 'separate-call' | 'none'
   /** 服务端搜索参数（dashscope enable_search） */
   searchParam?: 'enable_search'
+  /** 兼容端点下支持 enable_search 的文本模型（多模态模型搜索需原生端点，浏览器不可用）。 */
+  searchModel?: string
 }
 
 export interface Provider {
@@ -86,6 +88,7 @@ const BAILIAN: Provider = {
     attachment: 'base64-image-url',
     title: 'separate-call',
     searchParam: 'enable_search',
+    searchModel: 'qwen-flash',
   },
   capabilities: {
     search: true,

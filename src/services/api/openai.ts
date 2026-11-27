@@ -114,8 +114,18 @@ export async function* streamOpenAI(
   signal: AbortSignal,
   provider: Provider
 ): AsyncGenerator<MessageStreamEvent> {
+  // 兼容端点的 enable_search 仅文本模型生效；带图时用视觉模型（不搜索），纯文本搜索时切文本搜索模型。
+  const hasImages = body.messages.some(
+    (message) =>
+      message.role === 'user' &&
+      Array.isArray(message.content) &&
+      message.content.some((block) => block.type === 'image_base64')
+  )
+  const useSearch = !!body.enableSearch && !hasImages
+  const model =
+    useSearch && provider.wire.searchModel ? provider.wire.searchModel : body.model
   const requestBody: Record<string, unknown> = {
-    model: body.model,
+    model,
     messages: toOpenAIMessages(body, provider.wire.attachment === 'base64-image-url'),
     stream: true,
     stream_options: { include_usage: true },
@@ -128,7 +138,7 @@ export async function* streamOpenAI(
     requestBody.reasoning_effort = 'medium'
   }
   // dashscope 联网搜索：enable_search + enable_source 返回来源列表。
-  if (provider.wire.searchParam === 'enable_search' && body.enableSearch) {
+  if (provider.wire.searchParam === 'enable_search' && useSearch) {
     requestBody.enable_search = true
     requestBody.search_options = { enable_source: true }
   }
