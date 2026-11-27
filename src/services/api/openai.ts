@@ -61,7 +61,8 @@ type OpenAIPart =
 
 /** 规范请求（Anthropic 形状）→ OpenAI messages：系统提示 + 用户文本/内联图片 + 助手文本。 */
 const toOpenAIMessages = (
-  body: CreateMessageRequest
+  body: CreateMessageRequest,
+  multimodal: boolean
 ): { role: string; content: string | OpenAIPart[] }[] => {
   const messages: { role: string; content: string | OpenAIPart[] }[] = []
   if (body.system) {
@@ -72,7 +73,12 @@ const toOpenAIMessages = (
       continue
     }
     if (typeof message.content === 'string') {
-      messages.push({ role: message.role, content: message.content })
+      // 多模态模型（qwen3.6 等）的联网搜索要求 content 为数组形态；字符串会走文本路径使 enable_search 失效。
+      const content =
+        message.role === 'user' && multimodal
+          ? [{ type: 'text' as const, text: message.content }]
+          : message.content
+      messages.push({ role: message.role, content })
       continue
     }
     if (message.role === 'user') {
@@ -87,7 +93,10 @@ const toOpenAIMessages = (
           })
         }
       }
-      messages.push({ role: 'user', content: parts.length ? parts : '' })
+      messages.push({
+        role: 'user',
+        content: parts.length ? parts : multimodal ? [{ type: 'text', text: '' }] : '',
+      })
     } else {
       const text = message.content
         .filter((block): block is TextBlockParam => block.type === 'text')
@@ -107,7 +116,7 @@ export async function* streamOpenAI(
 ): AsyncGenerator<MessageStreamEvent> {
   const requestBody: Record<string, unknown> = {
     model: body.model,
-    messages: toOpenAIMessages(body),
+    messages: toOpenAIMessages(body, provider.wire.attachment === 'base64-image-url'),
     stream: true,
     stream_options: { include_usage: true },
   }
