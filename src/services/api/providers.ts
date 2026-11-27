@@ -88,7 +88,7 @@ const BAILIAN: Provider = {
     searchParam: 'enable_search',
   },
   capabilities: {
-    search: false,
+    search: true,
     readUrl: false,
     files: false,
     vision: true,

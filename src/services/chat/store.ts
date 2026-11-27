@@ -60,6 +60,10 @@ const FILE_RETRY_BASE_DELAY = 1000
 
 /** 按供应商能力声明服务端工具：不支持搜索/链接阅读的供应商返回空数组，实现降级。 */
 const serverTools = (search: boolean): CreateMessageRequest['tools'] => {
+  // DeepSeek 专有工具仅 anthropic 协议声明；OpenAI 兼容搜索走 enable_search。
+  if (getProvider().protocol !== 'anthropic') {
+    return []
+  }
   const caps = getProvider().capabilities
   const tools: CreateMessageRequest['tools'] = []
   if (caps.readUrl) {
@@ -1062,6 +1066,9 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
             thinking: { type: initial.thinking && caps.thinking ? 'enabled' : 'disabled' },
             ...(caps.safetyCheck ? { safety_check: { level: 'high' } as const } : {}),
             tools: serverTools(initial.search ?? false),
+            ...(provider.protocol === 'openai' && caps.search
+              ? { enableSearch: initial.search ?? false }
+              : {}),
             ...(titleRequests.has(controller) ? { title: { enabled: true } } : {}),
           },
           controller.signal

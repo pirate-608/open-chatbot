@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { TranslationMessage } from '../../i18n/index.js'
 import { transcribe } from '../../services/api/speech.js'
+import { getProvider } from '../../services/api/providers.js'
+import { startWebSpeech, webSpeechSupported, type WebSpeechSession } from '../../services/speech/webSpeech.js'
 import { startRecording, type Recording } from '../../services/speech/recorder.js'
 import { useSettings } from '../../services/settings.js'
 import { showToast } from '../base/toastState.js'
@@ -34,6 +36,7 @@ export const useVoiceInput = (onText: (text: string) => void) => {
   /** 本次录音已录秒数，只在录音中递增 */
   const [seconds, setSeconds] = useState(0)
   const recordingRef = useRef<Recording | null>(null)
+  const webRef = useRef<WebSpeechSession | null>(null)
   const controllerRef = useRef<AbortController | null>(null)
   const operationRef = useRef(0)
   const onTextRef = useRef(onText)
@@ -43,6 +46,8 @@ export const useVoiceInput = (onText: (text: string) => void) => {
     operationRef.current++
     recordingRef.current?.cancel()
     recordingRef.current = null
+    webRef.current?.cancel()
+    webRef.current = null
     controllerRef.current?.abort()
     controllerRef.current = null
   }, [])
@@ -53,6 +58,13 @@ export const useVoiceInput = (onText: (text: string) => void) => {
   }, [cancelOperation])
 
   const finish = useCallback(async () => {
+    // Web Speech 兜底：停止识别，结果与复位由回调处理。
+    if (webRef.current) {
+      const session = webRef.current
+      webRef.current = null
+      session.stop()
+      return
+    }
     const recording = recordingRef.current
     if (!recording) {
       // 仍在等待麦克风授权时也允许取消；迟到的录音对象会立即释放。
@@ -108,6 +120,41 @@ export const useVoiceInput = (onText: (text: string) => void) => {
       cancel()
       return
     }
+    // 第三方供应商无 ASR：用浏览器本地识别兜底。
+    if (!getProvider().capabilities.voice) {
+      if (!webSpeechSupported()) {
+        showToast({ key: 'voiceInputFailed' })
+        return
+      }
+      const operation = ++operationRef.current
+      setStatus('recording')
+      const session = startWebSpeech(
+        useSettings.getState().locale === 'zh-CN' ? 'zh-CN' : 'en-US',
+        (text) => {
+          if (operationRef.current === operation) {
+            onTextRef.current(text)
+          }
+        },
+        () => {
+          if (operationRef.current === operation) {
+            setStatus('idle')
+          }
+        },
+        () => {
+          if (operationRef.current === operation) {
+            setStatus('idle')
+            showToast({ key: 'voiceInputFailed' })
+          }
+        }
+      )
+      if (!session) {
+        setStatus('idle')
+        showToast({ key: 'voiceInputFailed' })
+        return
+      }
+      webRef.current = session
+      return
+    }
     const operation = ++operationRef.current
     setStatus('recording')
     try {
@@ -148,5 +195,12 @@ export const useVoiceInput = (onText: (text: string) => void) => {
   /** 当前录音的频谱分析节点，未录音时为 null */
   const getAnalyser = useCallback(() => recordingRef.current?.analyser ?? null, [])
 
-  return { status, seconds, getAnalyser, toggle, cancel, available: AVAILABLE }
+  return {
+    status,
+    seconds,
+    getAnalyser,
+    toggle,
+    cancel,
+    available: AVAILABLE && (getProvider().capabilities.voice || webSpeechSupported()),
+  }
 }

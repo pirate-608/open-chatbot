@@ -187,6 +187,8 @@ export type CreateMessageRequest = {
   tools: (DeepseekWebSearchTool | DeepseekReadUrlTool)[]
   safety_check?: { level: 'high' }
   title?: { enabled: boolean }
+  /** OpenAI 兼容供应商的联网搜索开关（dashscope enable_search）。 */
+  enableSearch?: boolean
 }
 
 // ---------- 响应：流式事件 ----------

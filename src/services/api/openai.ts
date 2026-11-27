@@ -23,6 +23,9 @@ interface OpenAIChunk {
   model?: string
   error?: { message?: string }
   usage?: { prompt_tokens?: number; completion_tokens?: number }
+  search_info?: {
+    search_results?: { title?: string; url?: string; icon?: string; site_name?: string }[]
+  }
   choices?: {
     delta?: {
       content?: string | null
@@ -115,6 +118,11 @@ export async function* streamOpenAI(
   } else if (provider.wire.thinkingControl === 'reasoning_effort' && thinkingEnabled) {
     requestBody.reasoning_effort = 'medium'
   }
+  // dashscope 联网搜索：enable_search + enable_source 返回来源列表。
+  if (provider.wire.searchParam === 'enable_search' && body.enableSearch) {
+    requestBody.enable_search = true
+    requestBody.search_options = { enable_source: true }
+  }
 
   const response = await request(`${provider.apiOrigin}/chat/completions`, {
     method: 'POST',
@@ -137,6 +145,7 @@ export async function* streamOpenAI(
   let thinkingIndex: number | null = null
   let textIndex: number | null = null
   let usage: MessageUsage | undefined
+  let searchEmitted = false
 
   for await (const { data } of readServerSentEvents(response.body, signal)) {
     if (data === '[DONE]') {
@@ -162,6 +171,29 @@ export async function* streamOpenAI(
     }
     if (chunk.usage) {
       usage = toUsage(chunk.usage)
+    }
+    const results = chunk.search_info?.search_results
+    if (results?.length && !searchEmitted) {
+      searchEmitted = true
+      out.push({
+        type: 'content_block_start',
+        index: nextIndex++,
+        content_block: {
+          type: 'web_search_tool_result',
+          tool_use_id: `srvtoolu_s_0_${'0'.repeat(32)}`,
+          content: results.map((result) => ({
+            type: 'web_search_result',
+            title: result.title ?? '',
+            url: result.url ?? '',
+            snippet: '',
+            site_icon: result.icon || null,
+            site_name: result.site_name || null,
+            encrypted_content: '',
+            page_age: null,
+          })),
+          kind: 'search',
+        },
+      })
     }
     const choice = chunk.choices?.[0]
     const delta = choice?.delta

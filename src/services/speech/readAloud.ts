@@ -3,6 +3,7 @@ import type { TranslationMessage } from '../../i18n/index.js'
 import { ApiError } from '../api/client.js'
 import { classifyApiError } from '../api/errors.js'
 import { synthesize, TTS_SAMPLE_RATE } from '../api/speech.js'
+import { getProvider } from '../api/providers.js'
 import { useSettings } from '../settings.js'
 
 /**
@@ -23,13 +24,14 @@ export const useReadAloud = create<ReadAloudState>(() => ({ messageId: null, sta
 /** 首帧前多缓冲一点，减少网络抖动造成的断续 */
 const START_DELAY = 0.1
 
-let current: { controller: AbortController; context: AudioContext } | null = null
+let current: { controller: AbortController; context: AudioContext | null } | null = null
+let webTts = false
 
 const finish = (controller: AbortController) => {
   if (current?.controller !== controller) {
     return
   }
-  void current.context.close()
+  void current.context?.close()
   current = null
   useReadAloud.setState({ messageId: null, status: 'idle' })
 }
@@ -39,6 +41,10 @@ export const stopReadAloud = () => {
   if (current) {
     const { controller } = current
     controller.abort()
+    if (webTts) {
+      speechSynthesis.cancel()
+      webTts = false
+    }
     finish(controller)
   }
 }
@@ -85,6 +91,29 @@ export const toggleReadAloud = (
   const reading = useReadAloud.getState().messageId
   stopReadAloud()
   if (reading === messageId) {
+    return
+  }
+  // 第三方供应商无 TTS：用浏览器 speechSynthesis 兜底。
+  if (!getProvider().capabilities.voice && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    const controller = new AbortController()
+    current = { controller, context: null }
+    webTts = true
+    useReadAloud.setState({ messageId, status: 'playing' })
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = useSettings.getState().locale === 'zh-CN' ? 'zh-CN' : 'en-US'
+    utterance.onend = () => {
+      webTts = false
+      finish(controller)
+    }
+    utterance.onerror = () => {
+      if (!controller.signal.aborted) {
+        webTts = false
+        finish(controller)
+        onError(new Error('speechSynthesis failed'))
+      }
+    }
+    controller.signal.addEventListener('abort', () => speechSynthesis.cancel())
+    speechSynthesis.speak(utterance)
     return
   }
   const controller = new AbortController()
