@@ -8,6 +8,8 @@ export interface ProviderCapabilities {
   readUrl: boolean
   /** Files API 附件上传 */
   files: boolean
+  /** 视觉理解（OpenAI 兼容 base64 image_url 图片输入） */
+  vision: boolean
   /** 深度思考 */
   thinking: boolean
   /** ASR/TTS 语音 */
@@ -18,6 +20,20 @@ export interface ProviderCapabilities {
   latestReminder: boolean
 }
 
+/** 协议接线选项：把供应商差异收敛为数据，适配器据此翻译，避免到处写 if。 */
+export interface ProviderWire {
+  /** OpenAI 协议思考控制方式；anthropic 协议用请求体 thinking，置 none。 */
+  thinkingControl: 'enable_thinking' | 'reasoning_effort' | 'none'
+  /** OpenAI 流式思考增量字段名 */
+  reasoningField: 'reasoning_content' | 'reasoning'
+  /** 附件编码策略 */
+  attachment: 'files-api' | 'base64-image-url' | 'none'
+  /** 自动标题策略 */
+  title: 'extension' | 'separate-call' | 'none'
+  /** 服务端搜索参数（dashscope enable_search） */
+  searchParam?: 'enable_search'
+}
+
 export interface Provider {
   id: string
   label: string
@@ -26,8 +42,7 @@ export interface Provider {
   apiOrigin: string
   model: string
   systemPrompt: string
-  /** OpenAI 协议下是否用 enable_thinking 参数控制思考（千问等）。 */
-  supportsEnableThinking?: boolean
+  wire: ProviderWire
   capabilities: ProviderCapabilities
 }
 
@@ -39,10 +54,17 @@ const DEEPSEEK: Provider = {
   apiOrigin: __API_ORIGIN__,
   model: 'deepseek-flash',
   systemPrompt: '该助手为DeepSeek，由深度求索公司创造。',
+  wire: {
+    thinkingControl: 'none',
+    reasoningField: 'reasoning_content',
+    attachment: 'files-api',
+    title: 'extension',
+  },
   capabilities: {
     search: true,
     readUrl: true,
     files: true,
+    vision: true,
     thinking: true,
     voice: true,
     safetyCheck: true,
@@ -58,11 +80,18 @@ const BAILIAN: Provider = {
   apiOrigin: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
   model: 'qwen-flash',
   systemPrompt: '该助手为通义千问，由阿里巴巴集团创造。',
-  supportsEnableThinking: true,
+  wire: {
+    thinkingControl: 'enable_thinking',
+    reasoningField: 'reasoning_content',
+    attachment: 'base64-image-url',
+    title: 'separate-call',
+    searchParam: 'enable_search',
+  },
   capabilities: {
     search: false,
     readUrl: false,
     files: false,
+    vision: false,
     thinking: true,
     voice: false,
     safetyCheck: false,

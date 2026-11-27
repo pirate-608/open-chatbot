@@ -8,6 +8,7 @@ import {
   IconThinkOutline14,
 } from '../base/icons.js'
 import { setSearch, setThinking, useSettings } from '../../services/settings.js'
+import { getProvider, useProvider } from '../../services/api/providers.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { sendMessage, stopReply, useChatStore } from '../../services/chat/store.js'
 import {
@@ -53,6 +54,9 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const importingHistory = useChatStore((state) => state.importingHistory)
   const isMobile = useIsMobile()
   const search = useSettings((state) => state.search)
+  // 订阅供应商切换，按能力门控功能开关，避免展示会报错的选项。
+  useProvider((state) => state.id)
+  const caps = getProvider().capabilities
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const togglesRef = useRef<HTMLDivElement>(null)
@@ -202,6 +206,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
       <div className={styles.functionRow}>
         {/* 深度思考 / 智能搜索开关，tooltip 在按钮上方 */}
         <div ref={togglesRef} className={styles.toggles}>
+          {caps.thinking ? (
           <Tooltip content={t('deactivatedThinkTooltip')}>
             <button
               type="button"
@@ -214,6 +219,8 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               <span className={styles.toggleLabel}>{t('thinkingSwitch')}</span>
             </button>
           </Tooltip>
+          ) : null}
+          {caps.search ? (
           <Tooltip content={t('deactivatedSearchTooltip')}>
             <button
               type="button"
@@ -226,6 +233,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               <span className={styles.toggleLabel}>{t('search')}</span>
             </button>
           </Tooltip>
+          ) : null}
         </div>
         <div className={styles.right}>
           <VoiceButton
@@ -241,6 +249,8 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               }
             }}
           />
+          {caps.files || caps.vision ? (
+          <>
           <IconButton
             size="m"
             tone="primary"
@@ -260,6 +270,8 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               event.target.value = ''
             }}
           />
+          </>
+          ) : null}
           {streaming && sessionId ? (
             <button
               type="button"

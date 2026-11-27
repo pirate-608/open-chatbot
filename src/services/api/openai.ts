@@ -24,7 +24,11 @@ interface OpenAIChunk {
   error?: { message?: string }
   usage?: { prompt_tokens?: number; completion_tokens?: number }
   choices?: {
-    delta?: { content?: string | null; reasoning_content?: string | null }
+    delta?: {
+      content?: string | null
+      reasoning_content?: string | null
+      reasoning?: string | null
+    }
     finish_reason?: string | null
   }[]
 }
@@ -82,9 +86,12 @@ export async function* streamOpenAI(
     stream: true,
     stream_options: { include_usage: true },
   }
-  // 千问等模型用 enable_thinking 开关思考；不支持的供应商不发送该参数。
-  if (provider.supportsEnableThinking) {
-    requestBody.enable_thinking = body.thinking.type === 'enabled'
+  // 思考控制按供应商接线：enable_thinking（千问）/ reasoning_effort（o 系）/ none。
+  const thinkingEnabled = body.thinking.type === 'enabled'
+  if (provider.wire.thinkingControl === 'enable_thinking') {
+    requestBody.enable_thinking = thinkingEnabled
+  } else if (provider.wire.thinkingControl === 'reasoning_effort' && thinkingEnabled) {
+    requestBody.reasoning_effort = 'medium'
   }
 
   const response = await request(`${provider.apiOrigin}/chat/completions`, {
@@ -137,7 +144,9 @@ export async function* streamOpenAI(
     const choice = chunk.choices?.[0]
     const delta = choice?.delta
 
-    if (delta?.reasoning_content) {
+    const reasoning =
+      provider.wire.reasoningField === 'reasoning' ? delta?.reasoning : delta?.reasoning_content
+    if (reasoning) {
       if (thinkingIndex === null) {
         thinkingIndex = nextIndex++
         out.push({
@@ -149,7 +158,7 @@ export async function* streamOpenAI(
       out.push({
         type: 'content_block_delta',
         index: thinkingIndex,
-        delta: { type: 'thinking_delta', thinking: delta.reasoning_content },
+        delta: { type: 'thinking_delta', thinking: reasoning },
       })
     }
     if (delta?.content) {
