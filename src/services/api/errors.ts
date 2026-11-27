@@ -40,6 +40,10 @@ export const classifyApiError = (error: unknown): ApiErrorCondition => {
   if (error.status === undefined) {
     return error.kind === 'network' ? 'network' : 'other'
   }
+  // OpenAI 兼容端点余额/欠费有时不走 402，按文案兜底归类。
+  if (/insufficient_quota|arrearage|insufficient balance/i.test(error.message)) {
+    return 'insufficientBalance'
+  }
   return classifyStatus(error.status)
 }
 

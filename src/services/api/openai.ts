@@ -221,3 +221,31 @@ export async function* streamOpenAI(
     yield* out
   }
 }
+
+/** 单独一次非流式请求生成会话标题（OpenAI 兼容供应商无 title 扩展）。 */
+export const generateTitle = async (
+  apiKey: string,
+  provider: Provider,
+  question: string,
+  answer: string,
+  signal?: AbortSignal
+): Promise<string> => {
+  const response = await request(`${provider.apiOrigin}/chat/completions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: provider.model,
+      stream: false,
+      messages: [
+        {
+          role: 'system',
+          content: '为给定对话生成一个简短标题（不超过8个字），只输出标题本身，不要引号与解释。',
+        },
+        { role: 'user', content: `用户：${question}\n助手：${answer}`.slice(0, 2000) },
+      ],
+    }),
+    signal,
+  })
+  const data = (await response.json()) as { choices?: { message?: { content?: string } }[] }
+  return (data.choices?.[0]?.message?.content ?? '').trim()
+}

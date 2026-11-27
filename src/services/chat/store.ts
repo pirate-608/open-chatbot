@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { getAbortReason, throwIfAborted } from '../../utils/abort.js'
 import { createId } from '../../utils/id.js'
 import { ApiError, streamMessage } from '../api/client.js'
+import { generateTitle } from '../api/openai.js'
 import type { CreateMessageRequest } from '../api/types.js'
 import { extractFileIds, getFileErrorCode, isRetryableApiError } from '../api/errors.js'
 import { getProvider } from '../api/providers.js'
@@ -27,6 +28,7 @@ import {
   applyEvent,
   canContinueReply,
   getContextRounds,
+  getReplyText,
   settleReply,
   toRequestMessages,
 } from './reply.js'
@@ -1060,6 +1062,24 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           }
         }
         reply = settleReply(reply, 'done', Date.now())
+        // OpenAI 兼容供应商无 title 扩展：首轮结束后单独一次廉价请求补标题。
+        if (
+          provider.wire.title === 'separate-call' &&
+          titleRequests.has(controller) &&
+          !getSession(sessionId)?.title
+        ) {
+          const title = await generateTitle(
+            useSettings.getState().apiKey ?? '',
+            provider,
+            prepared.question.content,
+            getReplyText(reply),
+            controller.signal
+          ).catch(() => '')
+          if (title && !controller.signal.aborted && !get().importingHistory) {
+            updateSession(sessionId, (session) => (session.title ? session : { ...session, title }))
+          }
+          titleRequests.delete(controller)
+        }
         break
       } catch (error) {
         if (controller.signal.aborted) {
