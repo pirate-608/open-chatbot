@@ -44,6 +44,7 @@ open-chatbot：本地优先、纯前端、无自建后端的多供应商聊天�
 4. dashscope 默认 `qwen3.6-flash`（视觉+思考）；搜索自动切 `wire.searchModel`=qwen-flash（见 6）；qwen-flash 纯文本无视觉。
 5. 能力门控：`caps.search/thinking/vision/files/voice` 决定 UI 与请求降级；DeepSeek 专有工具仅 anthropic 协议声明。
 6. 搜索引用=**来源面板**（合成 `web_search_tool_result` 块自 `search_info.search_results`，需 `search_options.enable_source`）；**无行内引用角标**（协议不返回位置）。
+   - **展示配对**：视图的「已阅读 N 个网页」+来源面板由 `server_tool_use`(action:search) 块驱动，按 `tool_use_id` 配对 `web_search_tool_result`。dashscope 适配器必须**成对发射**调用块+结果块，否则无搜索展示。行内逐句角标仅 DeepSeek（返回 citation 位置）。
    - **多模态模型搜索形态**：qwen3.6 等多模态系列的 `enable_search` 仅在 content 为**数组**（多模态形态）时生效；纯字符串 content 走文本路径会静默忽略搜索。`toOpenAIMessages(body, multimodal)` 对 base64-image-url 供应商把 user content 包成 text-part 数组。
    - **兼容端点搜索仅文本模型**：compatible-mode 的 `enable_search` 只对文本模型生效（多模态搜索需原生 multimodal 端点，浏览器不可用）。故 `wire.searchModel`（dashscope=qwen-flash）：纯文本+搜索时自动切文本搜索模型；带图时用视觉模型并跳过搜索。
 7. 附件：openai 走 base64 `image_url`、`uploadAttachment` 对非 files-api 供应商 no-op；**历史图片降级省略**；文档附件 openai 不支持；链接阅读 DeepSeek 独有。
