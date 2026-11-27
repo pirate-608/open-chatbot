@@ -1,75 +1,62 @@
-# chat-demo
+# open-chatbot
 
-English | [简体中文](README.zh-CN.md)
+本地优先（local-first）的多供应商 AI 聊天应用。**纯前端、无自建后端**：对话由浏览器直连按量付费 API，会话历史通过一个**私有 GitHub 仓库**在多端同步。基于 [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo)（MIT）二次开发。
 
-A static chat demo powered by the DeepSeek API. No application backend is required: the browser connects directly to the configured API service.
+- 在线体验：<https://chat.67656.fun>（GitHub Pages 部署）
+- 代码仓库：`pirate-608/open-chatbot`（公开，不含任何密钥）
+- 数据仓库：独立的**私有**仓库（如 `chatbot-data`），仅存对话，与代码仓库完全分离
 
-You can [try the app online](https://deepseek-ai.github.io/chat-demo/) or download the archive from [Releases](https://github.com/deepseek-ai/deepseek-chat-demo/releases), extract it, and double-click `index.html` to use it locally without installation or a build. Enter your API key in Settings before your first chat.
+## 特性
 
-## Getting started
+- 多会话、自动标题、重命名/删除；编辑提问、重新生成、消息分支与续写。
+- 流式回答、深度思考；Markdown / 代码高亮 / KaTeX / Mermaid。
+- **DeepSeek 官方**（Anthropic 协议）：联网搜索、链接阅读、Files 附件、语音、引用角标，全功能。
+- **dashscope / OpenAI 兼容**：思考、base64 图片输入、`enable_search` 联网搜索（来源面板）、浏览器 Web Speech 语音兜底、单独请求自动标题。
+- **GitHub 同步**：离线优先（IndexedDB），增量 changelog + 字段级 LWW 合并，一键清空本地缓存重拉。
+- 中英双语、深浅主题、移动端布局、ZIP 历史备份。
 
-Install Node.js 22.12+ and pnpm, then run:
+## 快速开始
+
+需要 Node.js 22.12+ 与 **pnpm 9**（见下方版本约定）：
 
 ```sh
-git clone https://github.com/deepseek-ai/chat-demo.git
-cd chat-demo
 pnpm install
-pnpm dev
+pnpm dev        # http://localhost:8090
 ```
 
-Open http://localhost:8090.
+首次使用在「设置」填 API Key；多端同步在「设置 → 同步」填私有数据仓库 + fine-grained PAT，步骤见 [docs/sync-setup.md](docs/sync-setup.md)。
 
-To build the static site:
+## 供应商
 
-```sh
-pnpm build
-```
+| 供应商 | 协议 | 默认模型 | 说明 |
+|---|---|---|---|
+| DeepSeek | Anthropic Messages | deepseek-flash | 全功能 |
+| dashscope（百炼按量） | OpenAI compatible-mode | qwen3.6-flash | 视觉+思考+搜索；Anthropic 端点对浏览器关跨域，故走 OpenAI |
 
-The output is written to `dist/`. Deploy it to a static web server or open `dist/index.html` directly. Opening the file directly requires browser support for storage on `file://` pages and an API service that permits their cross-origin requests.
+供应商差异收敛在 `src/services/api/providers.ts` 的 `wire` / `capabilities` 描述符，新增供应商≈加配置。
 
-## Features
+## 部署
 
-- Multiple conversations with automatic titles, renaming, and deletion; edit prompts, regenerate replies, and switch between message branches.
-- Streaming replies, deep thinking, smart search, link reading, and source citations; stop generation or continue eligible replies.
-- Upload, paste, or drag and drop attachments; use voice input and read replies aloud. A live audio spectrum appears in the first row of the input area while recording on mobile.
-- Markdown, syntax highlighting, KaTeX math, and Mermaid diagrams.
-- Simplified Chinese and English, light and dark themes, mobile layouts, location settings, and chat history import and export.
+推送到 `main` 触发 [.github/workflows/pages.yml](.github/workflows/pages.yml) 自动构建并部署到 GitHub Pages（自定义域名 `chat.67656.fun`）。
 
-## Data and storage
+> ⚠️ CI 与本地均钉 **pnpm 9.15.9**（`packageManager` 字段）。不要升级到 pnpm 10+：它不再读 `package.json` 的 `pnpm.patchedDependencies`，会破坏 gittersync 补丁与 frozen-lockfile。
 
-Your API key and settings are stored in the browser's localStorage. Conversations and original attachments are stored in IndexedDB. Local data is isolated by browser profile and site origin. Sending messages, uploading attachments, and using speech features sends the relevant content to the configured API service.
+## 数据与隐私
 
-History import and export in Settings use ZIP archives. After confirmation and successful validation, importing replaces all local conversations and attachments. Exports include conversations and locally available original images, but exclude API keys, settings, and original non-image attachments. See the [history import/export documentation (Chinese)](src/services/chat/history/README.md) for the archive format and preservation details.
+- API Key / GitHub PAT 只存各设备浏览器 localStorage，**不进代码、构建、仓库**。
+- 对话存私有数据仓库；公开代码仓库与公开站点不携带任何密钥或对话。
+- 访客使用需填自己的 Key / PAT / 数据仓库。
 
-Settings → Data → Delete all chats clears all local conversations, original attachments, and unsent drafts after confirmation. It stops ongoing replies and returns to a new chat. Your API key and settings are preserved; files already uploaded to the API service are not deleted.
+## 构建注意
 
-## Development
+`pnpm build` 脚本为 unix 写法（`rm -rf` / `NODE_ENV=`），Windows 本地需 `cross-env` 或直接调 rspack；CI（ubuntu）不受影响。
 
-| Command       | Description                  |
-| ------------- | ---------------------------- |
-| `pnpm dev`    | Start the development server |
-| `pnpm build`  | Build into `dist/`           |
-| `pnpm type`   | Run TypeScript type checks   |
-| `pnpm lint`   | Lint with oxlint             |
-| `pnpm format` | Format with oxfmt            |
+## 文档
 
-[rspack.config.ts](rspack.config.ts) uses `https://api.deepseek.com` by default. Use `createConfig({ apiOrigin, devServer })` to customize the API origin and development server proxy.
+- [AGENTS.md](AGENTS.md)：agent 断点续作指南（架构、约定、已知限制、当前进度）。
+- [docs/sync-setup.md](docs/sync-setup.md)：同步实测准备清单。
+- 上游 demo 历史文档见 [README.zh-CN.md](README.zh-CN.md)。
 
-Chat uses `deepseek-flash` by default through Anthropic-compatible Messages / Files APIs. Speech features use ASR / TTS endpoints. Requests include extensions for search, link reading, titles, and `latest_reminder`, so the configured service must support the corresponding capabilities. Supported attachment formats are determined by server-side validation.
+## 许可
 
-```text
-src/
-  app/                 Application layout, themes, and global styles
-  components/          Chat, settings, Markdown, and other UI components
-  i18n/                English and Chinese translations
-  services/
-    api/               API requests, SSE, and protocol types
-    chat/              Conversations, message branches, storage, and history import/export
-    markdown/          Markdown parsing, syntax highlighting, and diagrams
-    speech/            Audio recording and read-aloud playback
-  utils/               Shared utilities
-```
-
-## License
-
-[MIT](LICENSE). The build copies the license to `dist/LICENSE`; include it when distributing the app. Third-party dependencies are subject to their own licenses.
+MIT，保留 [LICENSE](LICENSE)。上游 deepseek-ai/chat-demo  likewise MIT；第三方依赖遵循各自许可。
