@@ -194,12 +194,26 @@ export async function* streamOpenAI(
     const results = chunk.search_info?.search_results
     if (results?.length && !searchEmitted) {
       searchEmitted = true
+      const toolId = `srvtoolu_s_0_${'0'.repeat(32)}`
+      // 视图的「已阅读/来源面板」由 server_tool_use 调用块驱动，需与结果块配对。
+      out.push({
+        type: 'content_block_start',
+        index: nextIndex++,
+        content_block: {
+          type: 'server_tool_use',
+          id: toolId,
+          name: 'deepseek_web_search',
+          input: { action: 'search', queries: [] },
+          caller: { type: 'direct' },
+          kind: 'search',
+        },
+      })
       out.push({
         type: 'content_block_start',
         index: nextIndex++,
         content_block: {
           type: 'web_search_tool_result',
-          tool_use_id: `srvtoolu_s_0_${'0'.repeat(32)}`,
+          tool_use_id: toolId,
           content: results.map((result) => ({
             type: 'web_search_result',
             title: result.title ?? '',
