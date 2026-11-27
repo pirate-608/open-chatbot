@@ -321,8 +321,11 @@ export const generateTitle = async (
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: provider.model,
+      // 标题用轻量文本模型 + 关思考 + 限 token，避免默认思考模式拖慢首标题。
+      model: provider.wire.searchModel ?? provider.model,
       stream: false,
+      max_tokens: 32,
+      ...(provider.wire.thinkingControl === 'enable_thinking' ? { enable_thinking: false } : {}),
       messages: [
         {
           role: 'system',
