@@ -150,7 +150,7 @@ export const setTtsVoice = (ttsVoice: TtsVoice) => {
 export const setApiKey = (apiKey: string | null) => {
   const id = getProvider().id
   if (apiKey === null) {
-    delete apiKeys[id]
+    Reflect.deleteProperty(apiKeys, id)
   } else {
     apiKeys[id] = apiKey
   }
