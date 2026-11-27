@@ -41,10 +41,11 @@ open-chatbot：本地优先、纯前端、无自建后端的多供应商聊天�
 1. **gittersync 补丁** `patches/gittersync@1.5.2.patch`：修 REST 读路径 `JSON.parse(atob())`→`decodeBase64Utf8`（私有库强制 REST，否则中文乱码）。**勿删补丁**；升级 gittersync 需重验该读路径。
 2. **消息按文档同步**（per-message doc + sessions 集合），避免整会话单字段被 LWW 覆盖丢消息。
 3. **CORS 事实**（已实测）：DeepSeek anthropic 开跨域；dashscope **anthropic 关跨域**(预检403/401)→必须 OpenAI compatible-mode（开跨域）。workspace id 非必需。
-4. dashscope 默认 `qwen3.6-flash`（视觉+思考+搜索）；qwen-flash 纯文本无视觉。
+4. dashscope 默认 `qwen3.6-flash`（视觉+思考）；搜索自动切 `wire.searchModel`=qwen-flash（见 6）；qwen-flash 纯文本无视觉。
 5. 能力门控：`caps.search/thinking/vision/files/voice` 决定 UI 与请求降级；DeepSeek 专有工具仅 anthropic 协议声明。
 6. 搜索引用=**来源面板**（合成 `web_search_tool_result` 块自 `search_info.search_results`，需 `search_options.enable_source`）；**无行内引用角标**（协议不返回位置）。
    - **多模态模型搜索形态**：qwen3.6 等多模态系列的 `enable_search` 仅在 content 为**数组**（多模态形态）时生效；纯字符串 content 走文本路径会静默忽略搜索。`toOpenAIMessages(body, multimodal)` 对 base64-image-url 供应商把 user content 包成 text-part 数组。
+   - **兼容端点搜索仅文本模型**：compatible-mode 的 `enable_search` 只对文本模型生效（多模态搜索需原生 multimodal 端点，浏览器不可用）。故 `wire.searchModel`（dashscope=qwen-flash）：纯文本+搜索时自动切文本搜索模型；带图时用视觉模型并跳过搜索。
 7. 附件：openai 走 base64 `image_url`、`uploadAttachment` 对非 files-api 供应商 no-op；**历史图片降级省略**；文档附件 openai 不支持；链接阅读 DeepSeek 独有。
 8. 语音：第三方用 Web Speech（识别依赖浏览器）+ speechSynthesis（朗读）。
 9. 含搜索的回复不可续写（与 DeepSeek 一致）。
@@ -57,7 +58,7 @@ open-chatbot：本地优先、纯前端、无自建后端的多供应商聊天�
 
 ## 6. 可选待办（未做，按需）
 
-GitHub Action 维护（压缩/备份）；按供应商分别存 API key；行内引用角标；文档附件；模型下拉(/models)；语音在移动 Safari 的识别兜底。
+GitHub Action 维护（压缩/备份）；行内引用角标；文档附件；模型下拉(/models)；语音在移动 Safari 的识别兜底。（按供应商存 API key 已完成。）
 
 ## 7. 限流与中断注意
 
