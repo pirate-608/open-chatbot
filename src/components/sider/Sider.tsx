@@ -28,10 +28,11 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
   const [deletePending, setDeletePending] = useState(false)
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<SearchHit[] | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
     const q = query.trim()
-    if (!q) {
+    if (!searchOpen || !q) {
       setHits(null)
       return
     }
@@ -47,7 +48,7 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
       alive = false
       clearTimeout(timer)
     }
-  }, [query, sessions])
+  }, [query, sessions, searchOpen])
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>
@@ -79,21 +80,39 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
         <div className={styles.appName}>{t('appName')}</div>
         <IconButton
           size="m"
+          icon={<IconSearchOutline16 />}
+          tooltip={t('searchSessionsPlaceholder')}
+          tooltipPlacement="bottom"
+          onClick={() =>
+            setSearchOpen((open) => {
+              if (open) {
+                setQuery('')
+                setHits(null)
+              }
+              return !open
+            })
+          }
+        />
+        <IconButton
+          size="m"
           icon={<IconPanelLeftOutline16 />}
           tooltip={t('collapseSiderbarButton')}
           tooltipPlacement="bottom"
           onClick={() => (mobile ? closeMobileSider() : setSiderCollapsed(true))}
         />
       </div>
-      <div className={styles.searchRow}>
-        <IconSearchOutline16 />
-        <input
-          className={styles.searchInput}
-          value={query}
-          placeholder={t('searchSessionsPlaceholder')}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-      </div>
+      {searchOpen ? (
+        <div className={styles.searchRow}>
+          <IconSearchOutline16 />
+          <input
+            className={styles.searchInput}
+            value={query}
+            autoFocus
+            placeholder={t('searchSessionsPlaceholder')}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
+      ) : null}
       <button
         type="button"
         className={styles.newChat}
