@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { getProvider, useProvider } from './api/providers.js'
 import type { TtsVoice } from './api/speech.js'
 import { normalizeLocation, type UserLocation } from './location.js'
 
@@ -21,6 +22,7 @@ type Settings = {
 
 const KEYS = {
   apiKey: 'chat-demo:api-key',
+  apiKeys: 'chat-demo:api-keys',
   locale: 'chat-demo:locale',
   location: 'chat-demo:location',
   themePreference: 'chat-demo:theme-preference',
@@ -45,6 +47,32 @@ const write = (key: string, value: string | null) => {
     } else {
       localStorage.setItem(key, value)
     }
+  } catch {
+    // 存储不可用时只在内存中生效
+  }
+}
+
+/** API Key 按供应商分别存储，切换供应商自动带出对应 key，无需重填。 */
+const readKeys = (): Record<string, string> => {
+  try {
+    return JSON.parse(localStorage.getItem(KEYS.apiKeys) ?? '{}') as Record<string, string>
+  } catch {
+    return {}
+  }
+}
+
+const apiKeys = readKeys()
+// 迁移旧单 key：首次使用时归入当前供应商。
+const legacyKey = read(KEYS.apiKey)
+if (legacyKey && Object.keys(apiKeys).length === 0) {
+  apiKeys[useProvider.getState().id] = legacyKey
+}
+
+const keyFor = (id: string): string | null => apiKeys[id] ?? null
+
+const writeKeys = () => {
+  try {
+    localStorage.setItem(KEYS.apiKeys, JSON.stringify(apiKeys))
   } catch {
     // 存储不可用时只在内存中生效
   }
@@ -88,7 +116,7 @@ const initialThemePreference = (): ThemePreference => {
 const initialTtsVoice = (): TtsVoice => (read(KEYS.ttsVoice) === 'tide' ? 'tide' : 'stella')
 
 export const useSettings = create<Settings>(() => ({
-  apiKey: read(KEYS.apiKey),
+  apiKey: keyFor(useProvider.getState().id),
   locale: initialLocale(),
   location: initialLocation(),
   themePreference: initialThemePreference(),
@@ -120,9 +148,20 @@ export const setTtsVoice = (ttsVoice: TtsVoice) => {
 }
 
 export const setApiKey = (apiKey: string | null) => {
-  write(KEYS.apiKey, apiKey)
+  const id = getProvider().id
+  if (apiKey === null) {
+    delete apiKeys[id]
+  } else {
+    apiKeys[id] = apiKey
+  }
+  writeKeys()
   useSettings.setState({ apiKey })
 }
+
+// 切换供应商时自动加载该供应商已存的 key。
+useProvider.subscribe((state) => {
+  useSettings.setState({ apiKey: keyFor(state.id) })
+})
 
 export const setThinking = (thinking: boolean) => {
   write(KEYS.thinking, String(thinking))
