@@ -34,6 +34,33 @@
   color: var(--dsw-alias-brand-primary);
 }
 
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin: 0 2px 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--dsw-specific-login-input);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+
+  &::placeholder {
+    color: var(--dsw-alias-label-caption);
+  }
+}
+
 .newChat {
   position: relative;
   display: flex;

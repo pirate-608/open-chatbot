@@ -21,6 +21,7 @@
     "@types/react-dom": "~18.3.0",
     "clsx": "2.1.1",
     "fflate": "0.8.3",
+    "fuse.js": "^7.5.0",
     "gittersync": "1.5.2",
     "idb": "8.0.3",
     "katex": "0.16.22",

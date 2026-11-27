@@ -1,7 +1,8 @@
 import clsx from 'clsx'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
-import { IconPanelLeftOutline16, IconSettingsOutline16, NewChatIcon } from '../base/icons.js'
+import { IconPanelLeftOutline16, IconSearchOutline16, IconSettingsOutline16, NewChatIcon } from '../base/icons.js'
+import { searchSessions, type SearchHit } from '../../services/chat/search.js'
 import { setSiderCollapsed } from '../../services/settings.js'
 import { groupSessions } from '../../services/chat/sessionGroups.js'
 import { newChat, removeSession, useChatStore } from '../../services/chat/store.js'
@@ -25,6 +26,28 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
   const groups = useMemo(() => groupSessions(sessions, now, t), [sessions, now, t])
   const [deleting, setDeleting] = useState<SessionSummary | null>(null)
   const [deletePending, setDeletePending] = useState(false)
+  const [query, setQuery] = useState('')
+  const [hits, setHits] = useState<SearchHit[] | null>(null)
+
+  useEffect(() => {
+    const q = query.trim()
+    if (!q) {
+      setHits(null)
+      return
+    }
+    let alive = true
+    const timer = setTimeout(() => {
+      void searchSessions(q).then((result) => {
+        if (alive) {
+          setHits(result)
+        }
+      })
+    }, 200)
+    return () => {
+      alive = false
+      clearTimeout(timer)
+    }
+  }, [query, sessions])
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>
@@ -62,6 +85,15 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
           onClick={() => (mobile ? closeMobileSider() : setSiderCollapsed(true))}
         />
       </div>
+      <div className={styles.searchRow}>
+        <IconSearchOutline16 />
+        <input
+          className={styles.searchInput}
+          value={query}
+          placeholder={t('searchSessionsPlaceholder')}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </div>
       <button
         type="button"
         className={styles.newChat}
@@ -77,7 +109,20 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
       </button>
       <div className={styles.listWrap}>
         <div className={styles.list}>
-          {groups.map((group) => (
+          {hits !== null ? (
+            hits.length ? (
+              hits.map((hit) => (
+                <SessionItem
+                  key={hit.session.id}
+                  session={hit.session}
+                  active={hit.session.id === activeId}
+                  onDelete={() => setDeleting(hit.session)}
+                />
+              ))
+            ) : (
+              <div className={styles.sectionHeader}>{t('searchNoResults')}</div>
+            )
+          ) : groups.map((group) => (
             <div key={group.key} className={styles.section}>
               <div className={styles.sectionHeader}>{group.label}</div>
               {group.sessions.map((session) => (
