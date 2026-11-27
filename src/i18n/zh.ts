@@ -190,6 +190,6 @@ export const zh = {
   syncBadge: '同步',
   settingsProvider: '模型供应商',
   syncReset: '清空本地缓存并重新拉取',
-  searchSessionsPlaceholder: '搜索对话',
+  searchSessionsPlaceholder: '搜索对话内容…',
   searchNoResults: '无匹配对话',
 } as const

@@ -201,6 +201,6 @@ export const en = {
   syncBadge: 'Sync',
   settingsProvider: 'Model provider',
   syncReset: 'Clear local cache & re-pull',
-  searchSessionsPlaceholder: 'Search chats',
+  searchSessionsPlaceholder: 'Search chat content…',
   searchNoResults: 'No matching chats',
 } satisfies Record<keyof typeof zh, string>
