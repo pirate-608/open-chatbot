@@ -44,6 +44,7 @@ open-chatbot：本地优先、纯前端、无自建后端的多供应商聊天�
 4. dashscope 默认 `qwen3.6-flash`（视觉+思考+搜索）；qwen-flash 纯文本无视觉。
 5. 能力门控：`caps.search/thinking/vision/files/voice` 决定 UI 与请求降级；DeepSeek 专有工具仅 anthropic 协议声明。
 6. 搜索引用=**来源面板**（合成 `web_search_tool_result` 块自 `search_info.search_results`，需 `search_options.enable_source`）；**无行内引用角标**（协议不返回位置）。
+   - **多模态模型搜索形态**：qwen3.6 等多模态系列的 `enable_search` 仅在 content 为**数组**（多模态形态）时生效；纯字符串 content 走文本路径会静默忽略搜索。`toOpenAIMessages(body, multimodal)` 对 base64-image-url 供应商把 user content 包成 text-part 数组。
 7. 附件：openai 走 base64 `image_url`、`uploadAttachment` 对非 files-api 供应商 no-op；**历史图片降级省略**；文档附件 openai 不支持；链接阅读 DeepSeek 独有。
 8. 语音：第三方用 Web Speech（识别依赖浏览器）+ speechSynthesis（朗读）。
 9. 含搜索的回复不可续写（与 DeepSeek 一致）。
