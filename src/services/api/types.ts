@@ -126,6 +126,12 @@ export type ToolUseBlock = { type: 'tool_use'; id: string; name: string; input: 
 
 export type TextBlockParam = { type: 'text'; text: string }
 
+/** OpenAI 兼容视觉输入：base64 内联图片（不经过 Files API）。 */
+export type ImageBase64BlockParam = { type: 'image_base64'; media_type: string; data: string }
+
+/** 附件本地 id → base64 图片数据，供 openai 适配器转 image_url。 */
+export type ImageDataMap = Record<string, { media_type: string; data: string }>
+
 /**
  * 文件块：引用经 Files API 上传的文件，图片用 image、其余用 document；
  * 图片请求需带 anthropic-beta: files-api-2025-04-14；扩展模式不支持 document，返回 400。
@@ -158,7 +164,7 @@ export type AssistantBlockParam =
 export type MessageParam =
   /** Chat Engine 扩展角色，位于对应 user 前；需服务端支持 latest_reminder。 */
   | { role: 'latest_reminder'; content: string }
-  | { role: 'user'; content: string | (FileBlockParam | TextBlockParam)[] }
+  | { role: 'user'; content: string | (FileBlockParam | TextBlockParam | ImageBase64BlockParam)[] }
   | { role: 'assistant'; content: AssistantBlockParam[] }
 
 /** 开启联网搜索与边想边搜 */

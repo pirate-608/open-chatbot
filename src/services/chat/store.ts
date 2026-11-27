@@ -3,7 +3,7 @@ import { getAbortReason, throwIfAborted } from '../../utils/abort.js'
 import { createId } from '../../utils/id.js'
 import { ApiError, streamMessage } from '../api/client.js'
 import { generateTitle } from '../api/openai.js'
-import type { CreateMessageRequest } from '../api/types.js'
+import type { CreateMessageRequest, ImageDataMap } from '../api/types.js'
 import { extractFileIds, getFileErrorCode, isRetryableApiError } from '../api/errors.js'
 import { getProvider } from '../api/providers.js'
 import {
@@ -44,6 +44,15 @@ import {
 
 /** 保留最近打开的详情；当前会话、生成中及尚未成功保存的会话不淘汰。 */
 const SESSION_CACHE_LIMIT = 5
+
+/** Blob → base64（不含 data: 前缀），供 OpenAI 兼容视觉内联图片。 */
+const blobToBase64 = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '')
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
 /** 服务端判定 file_id 失效后，重新补传并重发的最多次数（不含首次请求） */
 const FILE_RETRY_LIMIT = 2
 /** 退避基数，第 n 次重试等待 2^n 倍；连续失败达到上限就放弃，把原始报错展示出来 */
@@ -1019,12 +1028,30 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
         reply = { ...reply, latestReminder }
         updateReply(sessionId, reply)
         persist(sessionId)
+        // OpenAI 兼容视觉：本轮图片从本地原件转 base64 内联（历史图片降级省略）。
+        let imageData: ImageDataMap | undefined
+        if (provider.wire.attachment === 'base64-image-url') {
+          imageData = {}
+          for (const file of prepared.question.files) {
+            if (!file.isImage) {
+              continue
+            }
+            const blob = await db.loadFile(file.id)
+            if (blob) {
+              imageData[file.id] = {
+                media_type: blob.type || 'image/png',
+                data: await blobToBase64(blob),
+              }
+            }
+          }
+        }
         const messages = toRequestMessages(
           prepared.history,
           prepared.question,
           prepared.prefix,
           initial.thinking ?? false,
-          latestReminder
+          latestReminder,
+          imageData
         )
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',

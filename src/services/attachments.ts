@@ -3,6 +3,7 @@ import type { LinkedMessage, TranslationMessage } from '../i18n/index.js'
 import { getAbortReason, throwIfAborted } from '../utils/abort.js'
 import { isUploadImageOversized } from '../utils/resizeUploadImage.js'
 import { uploadFile } from './api/client.js'
+import { getProvider } from './api/providers.js'
 import { classifyApiError, getUploadErrorInfo, isRetryableApiError } from './api/errors.js'
 import type { FilePurpose } from './api/types.js'
 import { loadFile } from './chat/db.js'
@@ -175,6 +176,11 @@ export const uploadAttachment = (
   name: string,
   isImage: boolean
 ): Promise<string> => {
+  // OpenAI 兼容视觉走 base64 内联，不上传 Files API；登记为完成态，原件留本地。
+  if (getProvider().wire.attachment !== 'files-api') {
+    setTask(id, { status: 'done', serverId: '' })
+    return Promise.resolve('')
+  }
   const current = pending.get(id)
   if (current) {
     return current.promise

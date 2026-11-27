@@ -52,9 +52,15 @@ const toStopReason = (finish: string | null | undefined): StopReason =>
         ? 'refusal'
         : 'end_turn'
 
-/** 规范请求（Anthropic 形状）→ OpenAI messages：系统提示 + 用户/助手文本；思考与工具块按约定不进入历史。 */
-const toOpenAIMessages = (body: CreateMessageRequest): { role: string; content: string }[] => {
-  const messages: { role: string; content: string }[] = []
+type OpenAIPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } }
+
+/** 规范请求（Anthropic 形状）→ OpenAI messages：系统提示 + 用户文本/内联图片 + 助手文本。 */
+const toOpenAIMessages = (
+  body: CreateMessageRequest
+): { role: string; content: string | OpenAIPart[] }[] => {
+  const messages: { role: string; content: string | OpenAIPart[] }[] = []
   if (body.system) {
     messages.push({ role: 'system', content: body.system })
   }
@@ -62,14 +68,30 @@ const toOpenAIMessages = (body: CreateMessageRequest): { role: string; content: 
     if (message.role === 'latest_reminder') {
       continue
     }
-    const content =
-      typeof message.content === 'string'
-        ? message.content
-        : message.content
-            .filter((block): block is TextBlockParam => block.type === 'text')
-            .map((block) => block.text)
-            .join('')
-    messages.push({ role: message.role, content })
+    if (typeof message.content === 'string') {
+      messages.push({ role: message.role, content: message.content })
+      continue
+    }
+    if (message.role === 'user') {
+      const parts: OpenAIPart[] = []
+      for (const block of message.content) {
+        if (block.type === 'text') {
+          parts.push({ type: 'text', text: block.text })
+        } else if (block.type === 'image_base64') {
+          parts.push({
+            type: 'image_url',
+            image_url: { url: `data:${block.media_type};base64,${block.data}` },
+          })
+        }
+      }
+      messages.push({ role: 'user', content: parts.length ? parts : '' })
+    } else {
+      const text = message.content
+        .filter((block): block is TextBlockParam => block.type === 'text')
+        .map((block) => block.text)
+        .join('')
+      messages.push({ role: 'assistant', content: text })
+    }
   }
   return messages
 }

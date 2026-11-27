@@ -78,7 +78,7 @@ const BAILIAN: Provider = {
   label: 'dashscope',
   protocol: 'openai',
   apiOrigin: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-  model: 'qwen-flash',
+  model: 'qwen3.6-flash',
   systemPrompt: '该助手为通义千问，由阿里巴巴集团创造。',
   wire: {
     thinkingControl: 'enable_thinking',
@@ -91,7 +91,7 @@ const BAILIAN: Provider = {
     search: false,
     readUrl: false,
     files: false,
-    vision: false,
+    vision: true,
     thinking: true,
     voice: false,
     safetyCheck: false,

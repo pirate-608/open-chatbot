@@ -1,6 +1,7 @@
 import type {
   AssistantBlockParam,
   FileBlockParam,
+  ImageDataMap,
   MessageParam,
   MessageStreamEvent,
   OutputBlockStart,
@@ -201,9 +202,21 @@ const isUsableReply = (message: Message): message is AssistantMessage =>
   !message.blocks.some((block) => block.type === 'text' && block.isTemplate) &&
   getReplyText(message) !== ''
 
-/** 有文件时用内容块数组：先文件后文本，文件按 Files API 的 file_id 引用 */
-const toUserParam = ({ content, files }: UserMessage): MessageParam => {
-  const blocks = toFileBlocks(files)
+/** 有文件时用内容块数组：先文件后文本。files-api 用 file_id 引用；base64 策略内联图片。 */
+const toUserParam = ({ content, files }: UserMessage, imageData?: ImageDataMap): MessageParam => {
+  const blocks = imageData
+    ? files.flatMap((file) =>
+        file.isImage && imageData[file.id]
+          ? [
+              {
+                type: 'image_base64' as const,
+                media_type: imageData[file.id].media_type,
+                data: imageData[file.id].data,
+              },
+            ]
+          : []
+      )
+    : toFileBlocks(files)
   return blocks.length === 0
     ? { role: 'user', content }
     : {
@@ -305,7 +318,8 @@ export const toRequestMessages = (
   question: UserMessage,
   prefix?: AssistantMessage,
   thinking = prefix?.thinking ?? false,
-  latestReminder?: string
+  latestReminder?: string,
+  imageData?: ImageDataMap
 ): MessageParam[] => {
   const messages: MessageParam[] = []
   let previousReminder: string | undefined
@@ -325,7 +339,7 @@ export const toRequestMessages = (
     messages.push(toUserParam(user), toAssistantParam(reply))
   }
   appendReminder(latestReminder)
-  messages.push(toUserParam(question))
+  messages.push(toUserParam(question, imageData))
   if (prefix?.prefix) {
     const assistant = toAssistantParam(prefix, true, thinking)
     // 没有非空白正文或有效思考时直接重发原问题，避免服务端拒绝空 Prefill。
